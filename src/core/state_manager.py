@@ -6,6 +6,11 @@ from src.entities.entity_manager import EntityManager
 from src.entities.systems.combat_system import CombatManager
 from src.worlds.data_loader import load_monsters
 
+try:
+    import pygame
+except Exception:  # pragma: no cover
+    pygame = None
+
 
 class StateManager:
     def __init__(self):
@@ -14,7 +19,19 @@ class StateManager:
 
         self.combat: CombatManager | None = None
 
-        self._frame_delay = 1.0  # untuk headless logging
+        # untuk headless logging / pacing
+        self._frame_delay = 1.0
+
+        # untuk pygame
+        self._turn_interval_sec = 1.0
+        self._last_turn_at = 0.0
+
+        # headless fallback
+        self._use_pygame = pygame is not None
+
+        # pygame UI objects (dibuat sekali dan di-reuse)
+        self._hud = None
+        self._combat_log_ui = None
 
     def _setup_combat(self):
         # Buat 1 player dan 1 enemy dari data
@@ -67,22 +84,106 @@ class StateManager:
             enemies=[enemy],
         )
 
+    def _draw_headless_log(self):
+        # keep behavior: combat_system sudah print per step
+        pass
+
+    def _draw_menu_pygame(self, screen, font) -> None:
+        screen.fill((20, 20, 30))
+        msg = "Aetheria RPG - Press any key to start combat"
+        surf = font.render(msg, True, (230, 230, 230))
+        screen.blit(surf, (20, 20))
+        pygame.display.flip()
+
+    def _draw_combat_pygame(self, screen) -> None:
+        from src.entities.components import Health
+        from src.ui.combat_log import CombatLog
+        from src.ui.hud import HUD
+
+        assert self.combat is not None
+
+        # init UI sekali saat masuk ke pygame mode
+        if self._hud is None or self._combat_log_ui is None:
+            self._hud = HUD(screen)
+            self._combat_log_ui = CombatLog(screen)
+
+        player = self.combat.players[0]
+        enemy = self.combat.enemies[0]
+        p_hp: Health = self.entity_manager.get_component(player, Health)
+        e_hp: Health = self.entity_manager.get_component(enemy, Health)
+
+        lines = [
+            f"Player HP: {p_hp.hp}/{p_hp.max_hp}",
+            f"Enemy HP: {e_hp.hp}/{e_hp.max_hp}",
+            f"Turn: {min(self.combat.turn_index + 1, 10**9)}",
+        ]
+        screen.fill((10, 10, 15))
+        self._hud.draw(lines)
+        self._combat_log_ui.draw(self.combat.log)
+
+        pygame.display.flip()
+
     def run(self):
-        # Mode minimal: headless demo berjalan otomatis.
+        if not self._use_pygame:
+            # Mode minimal: headless demo berjalan otomatis.
+            while self.state != "exit":
+                if self.state == "menu":
+                    self._setup_combat()
+                    self.state = "combat"
+                    continue
+
+                if self.state == "combat":
+                    assert self.combat is not None
+
+                    done = self.combat.step()
+                    time.sleep(self._frame_delay)
+
+                    if done:
+                        self.state = "exit"
+                    continue
+
+                raise RuntimeError(f"Unknown state: {self.state}")
+
+        # pygame mode
+        if pygame is None:  # pragma: no cover
+            raise RuntimeError("pygame is not available but pygame mode was entered")
+
+        pygame.init()
+        screen = pygame.display.set_mode((800, 600))
+        pygame.display.set_caption("Aetheria RPG (Minimal)")
+
+        font = pygame.font.SysFont(None, 22)
+        clock = pygame.time.Clock()
+
+        self._last_turn_at = time.time()
+
         while self.state != "exit":
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.state = "exit"
+
+                if self.state == "menu" and event.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN):
+                    self._setup_combat()
+                    self.state = "combat"
+                    self._last_turn_at = time.time()
+
             if self.state == "menu":
-                self._setup_combat()
-                self.state = "combat"
+                self._draw_menu_pygame(screen, font)
+                clock.tick(60)
                 continue
 
             if self.state == "combat":
                 assert self.combat is not None
 
-                done = self.combat.step()
-                time.sleep(self._frame_delay)
+                now = time.time()
+                if now - self._last_turn_at >= self._turn_interval_sec:
+                    done = self.combat.step()
+                    self._last_turn_at = now
+                    if done:
+                        self.state = "exit"
 
-                if done:
-                    self.state = "exit"
+                self._draw_combat_pygame(screen)
+                clock.tick(60)
                 continue
 
             raise RuntimeError(f"Unknown state: {self.state}")

@@ -21,9 +21,9 @@
 - [ ] Buat `data/monsters.json` dan `data/items.json` contoh
 
 ## Tahap 5: Rendering & UI (Minimal)
-- [ ] Buat `src/ui/hud.py` (HP + turn info)
-- [ ] Buat `src/ui/dialogue_box.py` atau overlay untuk log combat
-- [ ] Integrasi pygame loop ke state manager
+- [x] Buat `src/ui/hud.py` (HP + turn info)
+- [x] Buat `src/ui/dialogue_box.py` atau overlay untuk log combat
+- [x] Integrasi pygame loop ke state manager
 
 ## Tahap 6: Run & Validasi
 - [ ] Tambahkan `README.md` dengan cara menjalankan
