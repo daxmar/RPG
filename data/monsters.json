@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Slime",
+    "max_hp": 35,
+    "strength": 6,
+    "defense": 2,
+    "agility": 4,
+    "crit_chance": 0.1,
+    "crit_multiplier": 1.5
+  }
+]
+
