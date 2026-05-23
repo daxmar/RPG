@@ -1,33 +1,22 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
 
+@dataclass
+class Name:
+    value: str
 
 @dataclass
 class Health:
-    hp: int
-    max_hp: int
-
-    def is_dead(self) -> bool:
-        return self.hp <= 0
-
+    current: int
+    max: int
 
 @dataclass
 class Stats:
     strength: int
     defense: int
     agility: int
-    crit_chance: float = 0.1
-    crit_multiplier: float = 1.5
-
+    critical_chance: float = 0.1  # 10% default
 
 @dataclass
 class Position:
     x: int
     y: int
-
-
-@dataclass
-class Inventory:
-    items: list[str]
-
