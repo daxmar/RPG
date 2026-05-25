@@ -50,22 +50,21 @@ class StateManager:
         from src.entities.components import Health, Stats
 
         player = self.entity_manager.create_entity("Player")
-        self.entity_manager.add_component(player, Health(hp=60, max_hp=60))
+        self.entity_manager.add_component(player, Health(current=60, max=60))
         self.entity_manager.add_component(
             player,
             Stats(
                 strength=10,
                 defense=5,
                 agility=7,
-                crit_chance=0.15,
-                crit_multiplier=2.0,
+                critical_chance=0.15,
             ),
         )
 
         enemy = self.entity_manager.create_entity("Enemy")
         self.entity_manager.add_component(
             enemy,
-            Health(hp=enemy_data["max_hp"], max_hp=enemy_data["max_hp"]),
+            Health(current=enemy_data["max_hp"], max=enemy_data["max_hp"]),
         )
         self.entity_manager.add_component(
             enemy,
@@ -73,8 +72,7 @@ class StateManager:
                 strength=enemy_data["strength"],
                 defense=enemy_data["defense"],
                 agility=enemy_data["agility"],
-                crit_chance=enemy_data.get("crit_chance", 0.1),
-                crit_multiplier=enemy_data.get("crit_multiplier", 1.5),
+                critical_chance=enemy_data.get("crit_chance", 0.1),
             ),
         )
 
@@ -113,8 +111,8 @@ class StateManager:
         e_hp: Health = self.entity_manager.get_component(enemy, Health)
 
         lines = [
-            f"Player HP: {p_hp.hp}/{p_hp.max_hp}",
-            f"Enemy HP: {e_hp.hp}/{e_hp.max_hp}",
+            f"Player HP: {p_hp.current}/{p_hp.max}",
+            f"Enemy HP: {e_hp.current}/{e_hp.max}",
             f"Turn: {min(self.combat.turn_index + 1, 10**9)}",
         ]
         screen.fill((10, 10, 15))
